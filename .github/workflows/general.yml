@@ -1,3 +1,4 @@
+
 # The name of your workflow. GitHub displays the names of your workflows on your repository's "Actions" tab
 name: Rust
 
@@ -12,8 +13,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
-      - root-chapter-03-part0
-
+      - main 
 env:
   CARGO_TERM_COLOR: always
 
