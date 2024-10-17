@@ -20,19 +20,52 @@ pub struct DatabaseSettings {
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
-    // Initialise our configuration reader
+    let base_path = std::env::current_dir().expect("Failed to determint the current directory");
+    let configuration_directory = base_path.join("configuration");
+
+    let enviroment: Environment = std::env::var("APP_ENVIROMENT")
+        .unwrap_or_else(|_| "local".into())
+        .try_into()
+        .expect("Failed to parse APP_ENVIROMENT");
+    let enviroment_filename = format!("{}.yaml", enviroment.as_str());
     let settings = config::Config::builder()
-        // Add configuration values from a file named `configuration.yaml`.
-        .add_source(config::File::new(
-            "configuration.yaml",
-            config::FileFormat::Yaml,
+        .add_source(config::File::from(
+            configuration_directory.join("base.yaml"),
+        ))
+        .add_source(config::File::from(
+            configuration_directory.join(enviroment_filename),
         ))
         .build()?;
-    // Try to convert the configuration values it read into
-    // our Settings type
+
     settings.try_deserialize::<Settings>()
 }
+pub enum Environment {
+    Local,
+    Production,
+}
+impl Environment {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Environment::Local => "Local",
+            Environment::Production => "Production",
+        }
+    }
+}
+impl TryFrom<String> for Environment {
+    type Error = String;
 
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        match s.to_lowercase().as_str() {
+            "local" => Ok(Self::Local),
+            "production" => Ok(Self::Production),
+            other => Err(format!(
+                "{} is not a supported enviroment. \
+                    Use either 'local' or 'production'.",
+                other
+            )),
+        }
+    }
+}
 impl DatabaseSettings {
     pub fn connection_string(&self) -> Secret<String> {
         Secret::new(format!(
